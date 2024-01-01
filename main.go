@@ -32,7 +32,7 @@ func handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("%x\n", buf[:n])
 
-	resp, err := parseMQTT(buf)
+	resp, err := parseConnectionPacket(buf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,12 +41,43 @@ func handleConnection(conn net.Conn) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(n, resp)
+
+	defer conn.Close()
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// todo: handle other packets aside from PUBLISH
+		go func() {
+			fmt.Printf("%x\n", buf[:n])
+			pub := NewPublish(buf[:n])
+
+			err = pub.Decode()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			resp, err := pub.Reply()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// todo: send msg to subscribers
+			// todo: save msg to history
+
+			_, err = conn.Write(resp)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
+	}
 }
 
-func parseMQTT(packet []byte) ([]byte, error) {
+func parseConnectionPacket(packet []byte) ([]byte, error) {
 	if len(packet) == 0 {
-		return nil, errors.New("mqtt packet is empty")
+		return nil, errors.New("connection packet is empty")
 	}
 
 	var msg MQTT
@@ -54,7 +85,7 @@ func parseMQTT(packet []byte) ([]byte, error) {
 		log.Println("Conn packet")
 		msg = NewConnect(packet)
 	} else {
-		log.Println("no")
+		return nil, errors.New("invalid connection packet")
 	}
 
 	err := msg.Decode()
@@ -64,8 +95,8 @@ func parseMQTT(packet []byte) ([]byte, error) {
 
 	response, err := msg.Reply()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create message reply")
+		return nil, fmt.Errorf("failed to create connack")
 	}
-	// 10 2d 00 04 4d 51 54 54 04 02 00 3c0021706f73746d616e2d6d7174742d636c69656e742d31373033393732353034373536
+
 	return response, nil
 }
