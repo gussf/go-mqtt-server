@@ -10,8 +10,19 @@ type MQTT interface {
 	Reply() ([]byte, error)
 }
 
+type PacketType int
+
 const (
+	ConnectionPacket PacketType = iota
+	PublishPacket 
+	SubscribePacket 
+	UnknownPacket 
+)
+
+const (
+	ConnectionHeader = 0x10
 	ConnackSuccess = 0x20
+	PublishHeader = 0x30
 	PubackSuccess  = 0x40
 	ConnackLength  = 0x03
 )
@@ -105,3 +116,43 @@ func (p *Publish) Reply() ([]byte, error) {
 
 	return resp, nil
 }
+
+type Subscribe struct {
+	raw            []byte
+	VariableLength int
+	Topic          string
+}
+
+func NewSubscribe(raw []byte) *Subscribe{
+	return &Subscribe{
+		raw: raw,
+	}
+}
+
+func (p *Subscribe) Decode() error {
+	return nil
+}
+
+func (p *Subscribe) Reply() ([]byte, error) {
+	fixedHeader := []byte{PubackSuccess, 0x02, 0x00, 0x00}
+	resp := fixedHeader
+
+	return resp, nil
+}
+
+
+func RetrievePackageType(buf []byte, size int) PacketType {
+	if size <= 1 { 
+		return UnknownPacket
+	}
+
+	header := buf[0]
+	if header >= ConnectionHeader && header < ConnackSuccess {
+		return ConnectionPacket
+	} else if header >= PublishHeader && header < PubackSuccess {
+		return PublishPacket
+	}
+	
+	return UnknownPacket
+}
+

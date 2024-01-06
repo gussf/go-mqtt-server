@@ -51,6 +51,15 @@ func handleConnection(conn net.Conn) {
 
 		// todo: handle other packets aside from PUBLISH
 		go func() {
+			switch RetrievePackageType(buf, n) {
+			case PublishPacket:
+				log.Println("publish packet")
+			case SubscribePacket:
+				log.Println("publish packet")
+			default:
+				log.Fatal("invalid packet type")
+			}
+
 			fmt.Printf("%x\n", buf[:n])
 			pub := NewPublish(buf[:n])
 
@@ -79,15 +88,12 @@ func parseConnectionPacket(packet []byte) ([]byte, error) {
 	if len(packet) == 0 {
 		return nil, errors.New("connection packet is empty")
 	}
+	packetType := RetrievePackageType(packet, len(packet))
 
-	var msg MQTT
-	if packet[0] >= 0x10 && packet[0] < 0x20 {
-		log.Println("Conn packet")
-		msg = NewConnect(packet)
-	} else {
-		return nil, errors.New("invalid connection packet")
+	if packetType != ConnectionPacket {
+		return nil, fmt.Errorf("not a connection packet")
 	}
-
+	msg := NewConnect(packet)
 	err := msg.Decode()
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode packet: %w", err)
