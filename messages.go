@@ -1,5 +1,8 @@
 package main
 
+// todo 
+// message package
+
 import (
 	"errors"
 	"log"
@@ -7,6 +10,7 @@ import (
 
 type MQTT interface {
 	Decode() error
+	Process() error
 	Reply() ([]byte, error)
 }
 
@@ -16,15 +20,20 @@ const (
 	ConnectionPacket PacketType = iota
 	PublishPacket 
 	SubscribePacket 
+	PingPacket
 	UnknownPacket 
 )
 
 const (
-	ConnectionHeader = 0x10
-	ConnackSuccess = 0x20
-	PublishHeader = 0x30
-	PubackSuccess  = 0x40
+	ConnectionRequest = 0x10
+	Connack = 0x20
 	ConnackLength  = 0x03
+	PublishRequest = 0x30
+	Puback  = 0x40
+	SubscribeRequest = 0x80
+	Suback= 0x90
+	PingReq = 0xC0
+	PingResp = 0xD0
 )
 
 type Connect struct {
@@ -41,8 +50,13 @@ func (c *Connect) Decode() error {
 	return nil
 }
 
+
+func (c *Connect) Process() error {
+	return nil
+}
+
 func (c *Connect) Reply() ([]byte, error) {
-	resp := []byte{ConnackSuccess}
+	resp := []byte{Connack}
 	resp = append(resp, ConnackLength, 0x00, 0x00, 0x00)
 
 	return resp, nil
@@ -109,8 +123,13 @@ func (p *Publish) Decode() error {
 	return nil
 }
 
+func (p *Publish) Process() error {
+	return nil
+}
+
+
 func (p *Publish) Reply() ([]byte, error) {
-	fixedHeader := []byte{PubackSuccess, 0x02, 0x00, 0x00}
+	fixedHeader := []byte{Puback, 0x02, 0x00, 0x00}
 
 	resp := fixedHeader
 
@@ -129,30 +148,61 @@ func NewSubscribe(raw []byte) *Subscribe{
 	}
 }
 
-func (p *Subscribe) Decode() error {
+func (s *Subscribe) Decode() error {
 	return nil
 }
 
-func (p *Subscribe) Reply() ([]byte, error) {
-	fixedHeader := []byte{PubackSuccess, 0x02, 0x00, 0x00}
+func (s *Subscribe) Process() error {
+	return nil
+}
+
+func (s *Subscribe) Reply() ([]byte, error) {
+	fixedHeader := []byte{Suback, 0x03, 0x00, 0x00, 0x00}
 	resp := fixedHeader
 
 	return resp, nil
 }
 
+type Ping struct {
+	raw            []byte
+}
+
+func NewPing(raw []byte) *Ping{
+	return &Ping{
+		raw: raw,
+	}
+}
+
+func (p *Ping) Decode() error {
+	return nil
+}
+
+func (p *Ping) Process() error {
+	return nil
+}
+
+func (p *Ping) Reply() ([]byte, error) {
+	fixedHeader := []byte{PingResp, 0x00}
+	resp := fixedHeader
+
+	return resp, nil
+}
 
 func RetrievePackageType(buf []byte, size int) PacketType {
 	if size <= 1 { 
 		return UnknownPacket
 	}
 
-	header := buf[0]
-	if header >= ConnectionHeader && header < ConnackSuccess {
+	req := buf[0]
+	if req >= ConnectionRequest && req < Connack {
 		return ConnectionPacket
-	} else if header >= PublishHeader && header < PubackSuccess {
+	} else if req >= PublishRequest && req < Puback {
 		return PublishPacket
+	} else if req >= SubscribeRequest && req < Suback {
+		return SubscribePacket
+	} else if req >= PingReq && req < PingResp {
+		return PingPacket
 	}
-	
+
 	return UnknownPacket
 }
-

@@ -46,39 +46,21 @@ func handleConnection(conn net.Conn) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return
 		}
 
-		// todo: handle other packets aside from PUBLISH
 		go func() {
-			switch RetrievePackageType(buf, n) {
-			case PublishPacket:
-				log.Println("publish packet")
-			case SubscribePacket:
-				log.Println("publish packet")
-			default:
-				log.Fatal("invalid packet type")
-			}
-
-			fmt.Printf("%x\n", buf[:n])
-			pub := NewPublish(buf[:n])
-
-			err = pub.Decode()
+			resp, err := processRequest(buf, n)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
-
-			resp, err := pub.Reply()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// todo: send msg to subscribers
-			// todo: save msg to history
 
 			_, err = conn.Write(resp)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 		}()
 	}
@@ -89,10 +71,10 @@ func parseConnectionPacket(packet []byte) ([]byte, error) {
 		return nil, errors.New("connection packet is empty")
 	}
 	packetType := RetrievePackageType(packet, len(packet))
-
 	if packetType != ConnectionPacket {
 		return nil, fmt.Errorf("not a connection packet")
 	}
+
 	msg := NewConnect(packet)
 	err := msg.Decode()
 	if err != nil {
@@ -101,8 +83,46 @@ func parseConnectionPacket(packet []byte) ([]byte, error) {
 
 	response, err := msg.Reply()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create connack")
+		return nil, fmt.Errorf("failed to create connack: %w", err)
 	}
 
 	return response, nil
+}
+
+func processRequest(buf []byte, size int) ([]byte, error) {
+	fmt.Printf("Received: %x\n", buf[:size])
+	var resp []byte 
+	var msg MQTT
+	switch RetrievePackageType(buf, size) {
+	case PublishPacket:
+		log.Println("publish packet")
+		msg = NewPublish(buf[:size])
+	case SubscribePacket:
+		log.Println("subscribe packet")
+		msg = NewSubscribe(buf[:size])
+	case PingPacket:
+		log.Println("ping packet")
+		msg = NewPing(buf[:size])
+	default:
+		log.Fatal("invalid packet type")
+	}
+
+	err := msg.Decode()
+	if err != nil {
+		return nil, err
+	}
+
+	err = msg.Process() 
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = msg.Reply()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Sent: %x\n", resp)
+
+	return resp, nil
 }
