@@ -12,7 +12,7 @@ type MQTTParser struct {
 	pool models.SubscriptionPool
 }
 
-func NewMQTTParser() *MQTTParser {
+func NewMQTTParser() models.RequestParser {
 	return &MQTTParser{
 		pool: models.NewSubscriptionPool()}
 }

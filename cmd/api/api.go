@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"errors"
@@ -11,21 +11,18 @@ import (
 )
 
 type API struct {
-	addr net.Addr
-	rp   models.RequestParser
+	Rp models.RequestParser
 }
 
-func NewAPI(rp models.RequestParser, addr net.Addr) *API {
+func NewAPI(rp models.RequestParser) *API {
 	return &API{
-		addr: addr,
-		rp: rp,
+		Rp: rp,
 	}
 }
+func (a *API) Start(addr net.Addr) {
+	log.Printf("Starting server on %+v\n", addr)
 
-func (a *API) Start() {
-	log.Printf("Starting server on %+v\n", a.addr)
-
-	listener, err := net.Listen(a.addr.Network(), a.addr.String())
+	listener, err := net.Listen(addr.Network(), addr.String())
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +46,7 @@ func (a *API) handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("%x\n", buf[:n])
 
-	resp, err := a.rp.ProcessConnectionRequest(buf)
+	resp, err := a.Rp.ProcessConnectionRequest(buf)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -75,7 +72,7 @@ func (a *API) handleConnection(conn net.Conn) {
 		}
 
 		go func() {
-			resp, err := a.rp.ProcessRequest(buf, n)
+			resp, err := a.Rp.ProcessRequest(buf, n)
 			if err != nil {
 				log.Println(err)
 				return
