@@ -5,10 +5,14 @@ import (
 	"log"
 	"net"
 
+	"github.com/gussf/go-mqtt-server/domain/models"
 	"github.com/gussf/go-mqtt-server/gateways/mqtt"
 )
 
+var rp models.RequestParser
+
 func main() {
+	rp = mqtt.NewMQTTParser()
 	listener, err := net.Listen("tcp4", ":8001")
 	if err != nil {
 		panic(err)
@@ -33,7 +37,7 @@ func handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("%x\n", buf[:n])
 
-	resp, err := mqtt.ProcessConnectionRequest(buf)
+	resp, err := rp.ProcessConnectionRequest(buf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +56,7 @@ func handleConnection(conn net.Conn) {
 		}
 
 		go func() {
-			resp, err := mqtt.ProcessRequest(buf, n)
+			resp, err := rp.ProcessRequest(buf, n)
 			if err != nil {
 				log.Println(err)
 				return

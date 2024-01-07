@@ -4,9 +4,20 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/gussf/go-mqtt-server/domain/models"
 )
 
-func ProcessConnectionRequest(packet []byte) ([]byte, error) {
+type MQTTParser struct {
+	pool models.SubscriptionPool
+}
+
+func NewMQTTParser() *MQTTParser {
+	return &MQTTParser{
+		pool: models.NewSubscriptionPool()}
+}
+
+func (m *MQTTParser) ProcessConnectionRequest(packet []byte) ([]byte, error) {
 	if len(packet) == 0 {
 		return nil, errors.New("connection packet is empty")
 	}
@@ -29,7 +40,7 @@ func ProcessConnectionRequest(packet []byte) ([]byte, error) {
 	return response, nil
 }
 
-func ProcessRequest(buf []byte, size int) ([]byte, error) {
+func (m *MQTTParser) ProcessRequest(buf []byte, size int) ([]byte, error) {
 	fmt.Printf("Received: %x\n", buf[:size])
 	var resp []byte
 	var msg MQTT
