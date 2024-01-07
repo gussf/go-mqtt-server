@@ -15,5 +15,6 @@ func main() {
 
 	rp := mqtt.NewMQTTParser()
 
-	startAPI(rp, addr)
+	api := NewAPI(rp, addr)
+	api.Start()
 }

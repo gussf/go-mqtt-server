@@ -10,13 +10,22 @@ import (
 	"github.com/gussf/go-mqtt-server/domain/models"
 )
 
-var requestParser models.RequestParser
+type API struct {
+	addr net.Addr
+	rp   models.RequestParser
+}
 
-func startAPI(rp models.RequestParser, addr net.Addr) {
-	requestParser = rp
+func NewAPI(rp models.RequestParser, addr net.Addr) *API {
+	return &API{
+		addr: addr,
+		rp: rp,
+	}
+}
 
-	log.Printf("Starting server on %+v\n", addr)
-	listener, err := net.Listen(addr.Network(), addr.String())
+func (a *API) Start() {
+	log.Printf("Starting server on %+v\n", a.addr)
+
+	listener, err := net.Listen(a.addr.Network(), a.addr.String())
 	if err != nil {
 		panic(err)
 	}
@@ -28,11 +37,11 @@ func startAPI(rp models.RequestParser, addr net.Addr) {
 			log.Println("failed to accept connection", err)
 			continue
 		}
-		go handleConnection(conn)
+		go a.handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func (a *API) handleConnection(conn net.Conn) {
 	buf := make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil {
@@ -40,7 +49,7 @@ func handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("%x\n", buf[:n])
 
-	resp, err := requestParser.ProcessConnectionRequest(buf)
+	resp, err := a.rp.ProcessConnectionRequest(buf)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -66,7 +75,7 @@ func handleConnection(conn net.Conn) {
 		}
 
 		go func() {
-			resp, err := requestParser.ProcessRequest(buf, n)
+			resp, err := a.rp.ProcessRequest(buf, n)
 			if err != nil {
 				log.Println(err)
 				return
