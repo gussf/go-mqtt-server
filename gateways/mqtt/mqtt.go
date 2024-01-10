@@ -6,15 +6,17 @@ import (
 	"log"
 
 	"github.com/gussf/go-mqtt-server/domain/models"
+	"github.com/gussf/go-mqtt-server/domain/usecases/publisher"
 )
 
 type MQTTParser struct {
-	pool models.SubscriptionPool
+	uc publisher.Usecase
 }
 
-func NewMQTTParser() models.RequestParser {
+func NewMQTTParser(uc publisher.Usecase) models.RequestParser {
 	return &MQTTParser{
-		pool: models.NewSubscriptionPool()}
+		uc: uc,
+	}
 }
 
 func (m *MQTTParser) ProcessConnectionRequest(packet []byte) ([]byte, error) {

@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/gussf/go-mqtt-server/cmd/api"
+	"github.com/gussf/go-mqtt-server/domain/usecases/publisher"
 	"github.com/gussf/go-mqtt-server/gateways/mqtt"
 	"net"
 )
@@ -15,7 +16,8 @@ import (
 // Injectors from wire.go:
 
 func InitializeServer(addr net.Addr) *Server {
-	requestParser := mqtt.NewMQTTParser()
+	usecase := publisher.NewUsecase()
+	requestParser := mqtt.NewMQTTParser(usecase)
 	apiAPI := api.NewAPI(requestParser)
 	server := NewServer(apiAPI, addr)
 	return server

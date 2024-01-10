@@ -68,7 +68,6 @@ func (p *Publish) Decode() error {
 
 // Process posts the published message to all subscribers
 func (p *Publish) Process() error {
-
 	return nil
 }
 
