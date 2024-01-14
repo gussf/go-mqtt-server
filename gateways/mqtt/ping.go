@@ -1,24 +1,24 @@
 package mqtt
 
-type Ping struct {
+import "github.com/gussf/go-mqtt-server/domain/models"
+
+type PingHandler struct {
 	raw []byte
 }
 
-func NewPing(raw []byte) *Ping {
-	return &Ping{
-		raw: raw,
-	}
+func NewPingHandler() *PingHandler {
+	return &PingHandler{}
 }
 
-func (p *Ping) Decode() error {
+func (p *PingHandler) Decode(buf []byte) error {
 	return nil
 }
 
-func (p *Ping) Process() error {
+func (p *PingHandler) Process(conn models.Connection) error {
 	return nil
 }
 
-func (p *Ping) Reply() ([]byte, error) {
+func (p *PingHandler) Reply(conn models.Connection) ([]byte, error) {
 	fixedHeader := []byte{PingResp, 0x00}
 	resp := fixedHeader
 

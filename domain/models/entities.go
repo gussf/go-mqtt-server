@@ -6,12 +6,9 @@ type Connection struct {
 	Conn net.Conn
 }
 
-type Topic struct {
-	Name string
-}
+type Topic string
 
 type Subscription struct {
-	Topic Topic
+	Topic string
 	Conn  Connection
 }
-

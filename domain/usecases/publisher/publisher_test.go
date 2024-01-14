@@ -11,17 +11,23 @@ import (
 )
 
 func TestAddConnectionToTopicPool(t *testing.T) {
-	t.Run("", func(t *testing.T) {
+
+	t.Run("should add connection succesfully", func(t *testing.T) {
+		s, c := net.Pipe()
+		defer c.Close()
+		defer s.Close()
+
 		p := publisher.NewUsecase()
 
 		sub := models.Subscription{
-			Conn:  models.Connection{Conn: &net.IPConn{}},
-			Topic: models.Topic{Name: "test"},
+			Conn:  models.Connection{Conn: c},
+			Topic: "test",
 		}
-		err := p.AddConnectionToTopicPool(sub.Conn, sub.Topic)
+
+		err := p.AddConnectionToTopicPool(sub)
 		assert.Nil(t, err)
-		err = p.AddConnectionToTopicPool(sub.Conn, sub.Topic)
-		assert.NotNil(t, err)
-		// wip
+
+		subbed := p.IsSubscribed(sub)
+		assert.True(t, subbed)
 	})
 }

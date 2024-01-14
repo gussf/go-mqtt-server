@@ -5,17 +5,17 @@ import (
 )
 
 type SubscriptionPool interface {
-	Add(sub Subscription)
-	Get() (Subscription, bool)
+	Add(Subscription)
+	Get(string) ([]Connection, bool)
 }
 
 type subscriptionPool struct {
-	topicPool map[Topic][]Connection
+	topicPool map[string][]Connection
 }
 
 func NewSubscriptionPool() SubscriptionPool {
 	return subscriptionPool{
-		topicPool: map[Topic][]Connection{},
+		topicPool: map[string][]Connection{},
 	}
 }
 
@@ -26,9 +26,14 @@ func (s subscriptionPool) Add(sub Subscription) {
 		return
 	}
 
-	pool = append(pool, sub.Conn)
+	s.topicPool[sub.Topic] = append(pool, sub.Conn)
 }
 
-func (s subscriptionPool) Get() (Subscription, bool) {
-	return Subscription{}, false
+func (s subscriptionPool) Get(topic string) ([]Connection, bool) {
+	connSlice, ok := s.topicPool[topic]
+	if !ok {
+		return nil, false
+	}
+
+	return connSlice, true
 }

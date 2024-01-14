@@ -3,25 +3,30 @@ package mqtt
 import (
 	"errors"
 	"log"
+
+	"github.com/gussf/go-mqtt-server/domain/models"
+	"github.com/gussf/go-mqtt-server/domain/usecases/publisher"
 )
 
-type Publish struct {
+type PublishHandler struct {
+	uc             publisher.Usecase
 	raw            []byte
 	VariableLength int
 	Topic          string
 	Payload        string
 }
 
-func NewPublish(raw []byte) *Publish {
-	return &Publish{
-		raw: raw,
+func NewPublishHandler(uc publisher.Usecase) *PublishHandler {
+	return &PublishHandler{
+		uc: uc,
 	}
 }
 
-func (p *Publish) Decode() error {
-	if len(p.raw) < 2 {
+func (p *PublishHandler) Decode(buf []byte) error {
+	if len(buf) < 2 {
 		return errors.New("invalid publish length")
 	}
+	p.raw = buf
 
 	PublishLengthPos := 1
 	p.VariableLength = int(p.raw[PublishLengthPos])
@@ -67,11 +72,21 @@ func (p *Publish) Decode() error {
 }
 
 // Process posts the published message to all subscribers
-func (p *Publish) Process() error {
+func (p *PublishHandler) Process(conn models.Connection) error {
+	sub := models.Subscription{
+		Topic: p.Topic,
+		Conn:  conn,
+	}
+
+	err := p.uc.PublishToSubscribers(sub, p.Payload)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (p *Publish) Reply() ([]byte, error) {
+func (p *PublishHandler) Reply(models.Connection) ([]byte, error) {
 	fixedHeader := []byte{Puback, 0x02, 0x00, 0x00}
 
 	resp := fixedHeader

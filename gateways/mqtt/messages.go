@@ -1,5 +1,9 @@
 package mqtt
 
+import (
+	"github.com/gussf/go-mqtt-server/domain/models"
+)
+
 type PacketType int
 
 const (
@@ -23,9 +27,9 @@ const (
 )
 
 type MQTT interface {
-	Decode() error
-	Process() error
-	Reply() ([]byte, error)
+	Decode([]byte) error
+	Process(models.Connection) error
+	Reply(models.Connection) ([]byte, error)
 }
 
 func RetrievePackageType(buf []byte, size int) PacketType {

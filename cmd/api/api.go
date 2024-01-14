@@ -72,7 +72,7 @@ func (a *API) handleConnection(conn net.Conn) {
 		}
 
 		go func() {
-			resp, err := a.Rp.ProcessRequest(buf, n)
+			resp, err := a.Rp.ProcessRequest(buf, n, conn)
 			if err != nil {
 				log.Println(err)
 				return
