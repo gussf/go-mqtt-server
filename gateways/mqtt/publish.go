@@ -12,8 +12,8 @@ type PublishHandler struct {
 	uc             publisher.Usecase
 	raw            []byte
 	VariableLength int
-	Topic          string
-	Payload        string
+	Topic          []byte
+	Payload        []byte
 }
 
 func NewPublishHandler(uc publisher.Usecase) *PublishHandler {
@@ -56,7 +56,7 @@ func (p *PublishHandler) Decode(buf []byte) error {
 		topicBytes[i] = p.raw[currPos]
 		currPos++
 	}
-	p.Topic = string(topicBytes)
+	p.Topic = topicBytes
 
 	// handle payload
 	remaining := p.VariableLength - (int(msbLength) + int(lsbLength) + 2)
@@ -65,20 +65,35 @@ func (p *PublishHandler) Decode(buf []byte) error {
 		payloadBytes[i] = p.raw[currPos]
 		currPos++
 	}
-	p.Payload = string(payloadBytes)
+	p.Payload = payloadBytes
 
 	log.Printf("Publish:%#v\n", *p)
 	return nil
 }
 
+func (p *PublishHandler) Encode() []byte {
+	encoded := make([]byte, 4) // hardcoded bc im lazy
+	encoded[0] = PublishRequest
+
+	variableLen := len(p.Payload) + len(p.Topic)
+	encoded[1] = byte(variableLen)
+	encoded[2] = 0x00
+	encoded[3] = byte(len(p.Topic))
+	encoded = append(encoded, p.Topic...)
+	encoded = append(encoded, p.Payload...)
+
+	return encoded
+}
+
 // Process posts the published message to all subscribers
 func (p *PublishHandler) Process(conn models.Connection) error {
 	sub := models.Subscription{
-		Topic: p.Topic,
+		Topic: string(p.Topic),
 		Conn:  conn,
 	}
 
-	err := p.uc.PublishToSubscribers(sub, p.Payload)
+	payload := p.Encode()
+	err := p.uc.PublishToSubscribers(sub, payload)
 	if err != nil {
 		return err
 	}

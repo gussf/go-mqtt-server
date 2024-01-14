@@ -21,7 +21,7 @@ func NewMQTTParser(uc publisher.Usecase) models.RequestParser {
 	return &MQTTParser{
 		uc:               uc,
 		publishHandler:   NewPublishHandler(uc),
-		subscribeHandler: NewSubscribeHandler(),
+		subscribeHandler: NewSubscribeHandler(uc),
 		pingHandler:      NewPingHandler(),
 	}
 }

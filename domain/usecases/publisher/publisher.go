@@ -10,7 +10,7 @@ import (
 
 type Usecase interface {
 	AddConnectionToTopicPool(models.Subscription) error
-	PublishToSubscribers(models.Subscription, string) error
+	PublishToSubscribers(models.Subscription, []byte) error
 	IsSubscribed(models.Subscription) bool
 }
 
@@ -39,15 +39,19 @@ func (uc usecase) AddConnectionToTopicPool(sub models.Subscription) error {
 	return nil
 }
 
-func (uc usecase) PublishToSubscribers(sub models.Subscription, payload string) error {
+func (uc usecase) PublishToSubscribers(sub models.Subscription, payload []byte) error {
 	conns, ok := uc.pool.Get(sub.Topic)
 	if !ok {
 		return errors.New("failed to find topic in pool")
 	}
 
 	for _, c := range conns {
-		// go write
-		fmt.Printf("c: %v\n", c)
+		c := c
+		go func() {
+			n, err := c.Conn.Write(payload)
+			fmt.Printf("writing %x to %v\n", payload, c.Conn)
+			fmt.Printf("wrote: %d\nerr: %v\n", n, err)
+		}()
 	}
 	return nil
 }
